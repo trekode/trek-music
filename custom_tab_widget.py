@@ -1,8 +1,10 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal, QEvent
 from PyQt6.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QStackedWidget, QButtonGroup)
 
 
 class CustomTabWidget(QWidget):
+    tab_context_menu_requested = pyqtSignal(str)  # emits tab name
+
     def __init__(self, tabs_data: list[list], parent=None):
         """
         tabs_data: [tab_name, widget, tooltip] list
@@ -39,6 +41,8 @@ class CustomTabWidget(QWidget):
             btn.setContentsMargins(0,0,0,0)
             if idx == 0:
                 btn.setChecked(True)
+            btn.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            btn.customContextMenuRequested.connect(lambda pos, n=name: self.tab_context_menu_requested.emit(n))
             self.button_group.addButton(btn, idx)
             tab_layout.addWidget(btn)
             self.stacked_widget.addWidget(widget)

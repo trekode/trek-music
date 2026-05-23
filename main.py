@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QDockWidget, QStatusBar, QWidget, \
     QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QStyleFactory, QSizePolicy, QSlider, QMenu
-from PyQt6.QtGui import QPixmap, QAction, QKeySequence, QPainter, QFont
+from PyQt6.QtGui import QPixmap, QAction, QKeySequence, QPainter, QFont, QCursor
 from PyQt6.QtCore import Qt, QStandardPaths, QPoint, QEvent, QTimer
 from PyQt6.QtWidgets import QFileDialog
 from mutagen import File
@@ -87,8 +87,12 @@ class MainWindow(QMainWindow):
         self.slider.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.slider.setFixedHeight(17)
         self.player.duration_changed.connect(lambda dur: (self.slider.setRange(0, dur), self.slider.setEnabled(True)))
-        self.player.position_changed.connect(lambda pos: self.slider.setValue(pos))
+        self.player.position_changed.connect(lambda pos: (self.slider.setValue(pos), self.slider.update_tooltip_if_visible()))
+        self.player.position_changed.connect(
+            lambda pos: self.slider.setValue(pos) if not self.slider.isSliderDown() else None)
         self.slider.sliderMoved.connect(lambda pos: self.player.set_position(pos))
+        self.slider.sliderPressed.connect(self.player.pause)
+        self.slider.sliderReleased.connect(lambda: (self.player.set_position(self.slider.value()), self.player.play()))
 
         self.track_name = MarqueeLabel()
         self.track_name.setFont(TRACK_NAME_FONT)
@@ -379,6 +383,9 @@ class MainWindow(QMainWindow):
         self.playlist.itemDoubleClicked.connect(self.handle_track_double_click)
         self.queue_list.itemDoubleClicked.connect(self.handle_track_double_click)
 
+        self.playlist.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.playlist.customContextMenuRequested.connect(self.show_list_menu)
+
         self.queue_list.setDragDropMode(QListWidget.DragDropMode.InternalMove)
         self.queue_list.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.queue_list.setDragEnabled(True)
@@ -386,10 +393,11 @@ class MainWindow(QMainWindow):
         self.queue_list.setDropIndicatorShown(True)
         self.queue_list.model().rowsMoved.connect(self.on_queue_reordered)
         self.queue_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.queue_list.customContextMenuRequested.connect(self.show_playlist_menu)
+        self.queue_list.customContextMenuRequested.connect(self.show_list_menu)
 
         tab_widget = CustomTabWidget([["Library", self.playlist, "Original order (never modified)"], ["Queue", self.queue_list, "Current playback order (editable)"]])
         tab_widget.setObjectName("custom_tab_widget")
+        tab_widget.tab_context_menu_requested.connect(self.on_tab_context_menu)
 
         self.dock = QDockWidget()
         self.dock_title_bar = DockTitleBar(self.dock, "Playlist")
@@ -465,22 +473,25 @@ class MainWindow(QMainWindow):
 
 
     def _add_tracks(self, paths, replace=True):
-        paths = list(dict.fromkeys(paths))  # remove duplicates
+        paths = list(dict.fromkeys(paths))  # remove duplicates within the new paths
+
+        if not replace:
+            paths = [p for p in paths if p not in self.track_paths_list]  # exclude paths already in the playlist
 
         if replace:
             self.playlist.clear()
             self.track_paths_list.clear()
 
-        self.populate_dock_list(self.playlist, self.track_paths_list + paths)
+        self.track_paths_list.extend(paths)
 
-        self.track_paths_list = paths.copy()
+        self.populate_dock_list(self.playlist, self.track_paths_list)
 
         if self.track_paths_list:
-            self.player.set_tracks(self.track_paths_list, replace)
+            self.player.set_tracks(paths, replace)
             self.update_buttons_style()
 
         self.populate_dock_list(self.queue_list, self.player.track_list)
-        self.update_playback_state_style(self.player.reproduction_mode)
+        self.update_playback_state_style()
 
 
     def populate_dock_list(self, list_widget, paths_list):
@@ -504,7 +515,7 @@ class MainWindow(QMainWindow):
 
     def update_queue_list(self, new_list):
         self.populate_dock_list(self.queue_list, new_list)
-        self.update_playback_state_style(self.player.reproduction_mode)
+        self.update_playback_state_style()
 
 
     def on_queue_reordered(self):
@@ -528,32 +539,68 @@ class MainWindow(QMainWindow):
             self.player.load_current_track()
 
 
-    def show_playlist_menu(self, pos):
-        item = self.queue_list.itemAt(pos)
+    def on_tab_context_menu(self, tab_name):
+        if tab_name == "Queue" and self.player.track_list != self.track_paths_list:
+            menu = QMenu(self)
+            reset_action = QAction("Reset to Library order", self)
+            reset_action.triggered.connect(self.player.reset_queue_to_library)
+            menu.addAction(reset_action)
+            menu.exec(QCursor.pos())
+
+
+    def show_list_menu(self, pos):
+        list = self.sender()
+        item = list.itemAt(pos)
         if not item:
+            if list == self.queue_list and self.player.track_list != self.track_paths_list:
+                menu = QMenu(self)
+                reset_action = QAction("Reset to Library order", self)
+                reset_action.triggered.connect(self.player.reset_queue_to_library)
+                menu.addAction(reset_action)
+                menu.exec(list.mapToGlobal(pos))
             return
 
         menu = QMenu(self)
 
+        if list == self.playlist:
+            widget = self.playlist.itemWidget(item)
+            track_path = widget.track_path
+
+            if track_path not in self.player.track_list:
+                add_to_queue_action = QAction("Add to Queue", self)
+                add_to_queue_action.triggered.connect(lambda: self.add_to_queue(track_path))
+
+                menu.addAction(add_to_queue_action)
+
         remove_action = QAction("Remove", self)
-        remove_action.triggered.connect(lambda: self.remove_track_from_playlist(item))
+        remove_action.triggered.connect(lambda: self.remove_track_from_list(list, item))
 
         menu.addAction(remove_action)
-        menu.exec(self.queue_list.mapToGlobal(pos))
+        menu.exec(list.mapToGlobal(pos))
 
 
-    def remove_track_from_playlist(self, item):
-        widget = self.queue_list.itemWidget(item)
+    def remove_track_from_list(self, list, item):
+        widget = list.itemWidget(item)
         track_path = widget.track_path
 
         self.player.remove_track(track_path)
+
+        if list == self.playlist:
+            self.track_paths_list.remove(track_path)
+            self.populate_dock_list(self.playlist, self.track_paths_list)
+            self.highlight_current_track(self.player.get_current_track_path())
+
+
+    def add_to_queue(self, track):
+        self.player.set_tracks([track], False)
+        self.update_queue_list(self.player.track_list)
 
 
     def handle_play_pause_click(self):
         self.player.play_pause()
 
 
-    def update_playback_state_style(self, reproduction_mode):
+    def update_playback_state_style(self):
         self.update_play_pause_button_style()
         self.update_buttons_style()
         self.highlight_current_track(self.player.get_current_track_path())
@@ -651,14 +698,14 @@ class MainWindow(QMainWindow):
 
 
     def update_current_track(self, current_track):
-        if self.player.reproduction_mode == "stopped":
-            self.track_name.setText("")
-            self.track_name.setStyleSheet("background-color: transparent;")
-        else:
+        if current_track and self.player.reproduction_mode != "stopped":
             self.track_name.setText(Path(current_track).stem)
             self.track_name.setStyleSheet("background-color: rgba(5, 1, 20, 0.3);")
+        else:
+            self.track_name.setText("")
+            self.track_name.setStyleSheet("background-color: transparent;")
 
-        self.update_playback_state_style(self.player.reproduction_mode)
+        self.highlight_current_track(self.player.get_current_track_path())
 
 
     def highlight_current_track(self, current_track):
@@ -677,12 +724,14 @@ class MainWindow(QMainWindow):
 
 
     def handle_track_double_click(self, item):
-        widget = self.playlist.itemWidget(item)
-        if widget is None:
-            widget = self.queue_list.itemWidget(item)
+        list = self.sender()
+        widget = list.itemWidget(item)
 
         if widget:
-            self.player.set_track_by_path(widget.track_path)
+            if list == self.playlist and widget.track_path not in self.player.track_list:
+                self.player.insert_next_and_play(widget.track_path)
+            else:
+                self.player.set_track_by_path(widget.track_path)
 
 
     def update_buttons_style(self):
@@ -945,6 +994,15 @@ class MainWindow(QMainWindow):
             target_layout.insertWidget(index, widget, stretch)
 
 
+    def _apply_resize_rules(self):
+        h = self.height()
+
+        self.main_layout.setStretch(1, 1 if h < 220 else 0)
+        self.image_container.setVisible(h >= 216)
+        self.status_bar.setVisible(h >= 200)
+        self.menuBar().setVisible(h >= 140)
+
+
     def paintEvent(self, event):
         painter = QPainter(self)
 
@@ -970,13 +1028,9 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, self._apply_resize_rules)
 
 
-    def _apply_resize_rules(self):
-        h = self.height()
-
-        self.main_layout.setStretch(1, 1 if h < 220 else 0)
-        self.image_container.setVisible(h >= 216)
-        self.status_bar.setVisible(h >= 200)
-        self.menuBar().setVisible(h >= 140)
+    def closeEvent(self, event):
+        self.player.cleanup()
+        event.accept()
 
 
 if __name__ == '__main__':

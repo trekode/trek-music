@@ -4,7 +4,7 @@
   background-repeat: no-repeat;
 } */
 
-QStatusBar, QToolTip {
+QStatusBar, QToolTip, QLabel#slider-tooltip {
   color: rgba(208, 180, 250, 0.664);
   background-color: rgba(8, 2, 34, 0.884);
   padding: 3px;

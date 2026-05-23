@@ -41,6 +41,7 @@ class DockTitleBar(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setObjectName("dock_title_bar")
 
+
     def toggle_floating(self):
         self.dock.setFloating(not self.dock.isFloating())
         self.float_btn.setChecked(self.dock.isFloating())
