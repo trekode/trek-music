@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
 
         self.menu_mode = "simple"
 
-        self._bg_pixmap = QPixmap("./images/background.jpg")
+        self._bg_pixmap = QPixmap("assets/background.jpg")
         self._bg_scaled = None
         self._bg_size = None
 
@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
         self.player_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.player_image.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.player_image.setContentsMargins(0,0,0,0)
-        self.original_pixmap = QPixmap("./images/player_image.jpg")
+        self.original_pixmap = QPixmap("assets/player_image.jpg")
 
         self.slider = ClickableSlider(Qt.Orientation.Horizontal, self)
         self.slider.setStyle(QStyleFactory.create("Fusion"))
@@ -622,7 +622,7 @@ class MainWindow(QMainWindow):
 
     def handle_repeat_click(self):
         self.player.toggle_repeat()
-        self.repeat_button.setStyleSheet(f"image: url(./images/repeat_{self.player.repeat}.png);")
+        self.repeat_button.setStyleSheet(f"image: url(./assets/repeat_{self.player.repeat}.png);")
         self.update_status_bar()
 
 
@@ -650,13 +650,13 @@ class MainWindow(QMainWindow):
         if self.player.reproduction_mode == "playing":
             self.play_pause_button.setToolTip("Pause")
             self.play_pause_button.setStyleSheet(
-                "image: url(./images/pause.png);"
+                "image: url(./assets/pause.png);"
                 "padding: 10px 10px 10px 11px"
             )
         else:
             self.play_pause_button.setToolTip("Play")
             self.play_pause_button.setStyleSheet(
-                "image: url(./images/play_enabled.png);"
+                "image: url(./assets/play_enabled.png);"
                 "padding: 8px 8px 8px 12px"
             )
 
@@ -673,32 +673,32 @@ class MainWindow(QMainWindow):
 
         self.next_button.setEnabled(has_tracks)
         self.next_button.setStyleSheet(
-            "image: url(./images/next_enabled.png)" if has_tracks else "image: url(./images/next_disabled.png)")
+            "image: url(./assets/next_enabled.png)" if has_tracks else "image: url(./assets/next_disabled.png)")
         self.next_button.setToolTip("Next Track" if has_tracks else "")
 
         self.previous_button.setEnabled(has_tracks)
         self.previous_button.setStyleSheet(
-            "image: url(./images/previous_enabled.png)" if has_tracks else "image: url(./images/previous_disabled.png)")
+            "image: url(./assets/previous_enabled.png)" if has_tracks else "image: url(./assets/previous_disabled.png)")
         self.previous_button.setToolTip("Previous Track" if has_tracks else "")
 
         enable_seek = has_tracks and is_playing
 
         self.ten_forward_button.setEnabled(enable_seek)
         self.ten_forward_button.setStyleSheet(
-            "image: url(./images/ten_forward_enabled.png)" if enable_seek else "image: url(./images/ten_forward_disabled.png)")
+            "image: url(./assets/ten_forward_enabled.png)" if enable_seek else "image: url(./assets/ten_forward_disabled.png)")
         self.ten_forward_button.setToolTip("Forward 10 seconds" if enable_seek else "")
 
         self.ten_backward_button.setEnabled(enable_seek)
         self.ten_backward_button.setStyleSheet(
-            "image: url(./images/ten_backward_enabled.png)" if enable_seek else "image: url(./images/ten_backward_disabled.png)")
+            "image: url(./assets/ten_backward_enabled.png)" if enable_seek else "image: url(./assets/ten_backward_disabled.png)")
         self.ten_backward_button.setToolTip("Backward 10 seconds" if enable_seek else "")
 
 
     def update_shuffle_button(self, is_shuffle_on):
         if is_shuffle_on:
-            self.shuffle_button.setStyleSheet("image: url(./images/shuffle_on.png)")
+            self.shuffle_button.setStyleSheet("image: url(./assets/shuffle_on.png)")
         else:
-            self.shuffle_button.setStyleSheet("image: url(./images/shuffle_off.png)")
+            self.shuffle_button.setStyleSheet("image: url(./assets/shuffle_off.png)")
 
         self.update_status_bar()
 
@@ -778,7 +778,7 @@ class MainWindow(QMainWindow):
             f"border-top-left-radius: {radius_left};"
             f"border-bottom-left-radius: {radius_left};"
             f"padding: {padding};"
-            f"image: url(./images/{icon})"
+            f"image: url(./assets/{icon})"
         )
 
         self.update_status_bar()
@@ -823,12 +823,12 @@ class MainWindow(QMainWindow):
         self.floating_volume_panel.show()
         self.floating_volume_panel.raise_()
 
-        self.volume_toggle_button.setStyleSheet("image: url(./images/arrow-down)")
+        self.volume_toggle_button.setStyleSheet("image: url(./assets/arrow-down)")
         self.volume_toggle_button.setToolTip("Close volume slider")
 
 
     def on_volume_panel_closed(self):
-        self.volume_toggle_button.setStyleSheet("image: url(./images/arrow-up)")
+        self.volume_toggle_button.setStyleSheet("image: url(./assets/arrow-up)")
         self.volume_toggle_button.setToolTip("Open volume slider")
 
 

@@ -1,5 +1,5 @@
 /* QMainWindow {
-  background-image: url(./images/background.jpg);
+  background-image: url(./assets/background.jpg);
   background-position: center;
   background-repeat: no-repeat;
 } */
@@ -115,55 +115,55 @@ QWidget#buttons_container {
 }
 
 QPushButton#play_pause_button {
-  image: url("./images/play_disabled.png");
+  image: url("./assets/play_disabled.png");
   border-radius: 25px;
   padding: 8px 8px 8px 12px;
 }
 
 QPushButton#ten_backward_button {
-  image: url("./images/ten_backward_disabled.png");
+  image: url("./assets/ten_backward_disabled.png");
   border-radius: 21px;
   padding: 10px;
 }
 
 QPushButton#ten_forward_button {
-  image: url("./images/ten_forward_disabled.png");
+  image: url("./assets/ten_forward_disabled.png");
   border-radius: 21px;
   padding: 10px;
 }
 
 QPushButton#previous_button {
-  image: url("./images/previous_disabled.png");
+  image: url("./assets/previous_disabled.png");
   border-radius: 19px;
   padding: 8px;
 }
 
 QPushButton#next_button {
-  image: url("./images/next_disabled.png");
+  image: url("./assets/next_disabled.png");
   border-radius: 19px;
   padding: 8px;
 }
 
 QPushButton#shuffle_button {
-  image: url("./images/shuffle_off.png");
+  image: url("./assets/shuffle_off.png");
   border-radius: 15px;
   padding: 7px;
 }
 
 QPushButton#repeat_button {
-  image: url("./images/repeat_none.png");
+  image: url("./assets/repeat_none.png");
   border-radius: 15px;
   padding: 7px;
 }
 
 QPushButton#volume_button {
-  image: url("./images/volume_on.png");
+  image: url("./assets/volume_on.png");
   border-radius: 15px;
   padding: 7px;
 }
 
 QPushButton#volume_toggle_button {
-  image: url("./images/arrow-up.png");
+  image: url("./assets/arrow-up.png");
   border-radius: 3px;
   border-top-right-radius: 10px;
   border-bottom-right-radius: 10px;

@@ -23,7 +23,7 @@ class DockTitleBar(QWidget):
         layout.addWidget(self.title_label, 1)
 
         self.float_btn = QToolButton()
-        self.float_btn.setIcon(QIcon("images/floating-dock.png"))
+        self.float_btn.setIcon(QIcon("assets/floating-dock.png"))
         self.float_btn.setIconSize(QSize(15,15))
         self.float_btn.setFixedSize(25, 25)
         self.float_btn.setCheckable(True)
@@ -32,7 +32,7 @@ class DockTitleBar(QWidget):
         layout.addWidget(self.float_btn)
 
         self.close_btn = QToolButton()
-        self.close_btn.setIcon(QIcon("images/close.png"))
+        self.close_btn.setIcon(QIcon("assets/close.png"))
         self.close_btn.setIconSize(QSize(15,15))
         self.close_btn.setFixedSize(25, 25)
         self.close_btn.clicked.connect(dock.close)

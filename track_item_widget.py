@@ -10,7 +10,7 @@ class TrackItemWidget(QWidget):
 
         self.track_path: str = track_path
 
-        icon = QIcon("./images/music_icon.png")
+        icon = QIcon("assets/music_icon.png")
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(15,15))
         icon_label.setFixedWidth(15)
