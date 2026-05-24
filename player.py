@@ -117,6 +117,11 @@ class Player(QObject):
         self.playlist_changed.emit(self.track_list)
 
 
+    def remove_from_original_list(self, track_path):
+        if track_path in self.original_track_list:
+            self.original_track_list.remove(track_path)
+
+
     def reset_queue_to_library(self):
         current_track = self.get_current_track_path()
         self.track_list = self.original_track_list.copy()
@@ -317,3 +322,9 @@ class Player(QObject):
     def set_position(self, pos: int):
         self.player.setPosition(pos)
 
+
+    def cleanup(self):
+        if self._wake_lock is not None:
+            self._wake_lock.__exit__(None, None, None)
+            self._wake_lock = None
+        self.stop()
