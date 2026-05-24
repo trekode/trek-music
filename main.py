@@ -855,7 +855,9 @@ class MainWindow(QMainWindow):
         self.volume_layout.setSpacing(1)
         self.update_volume_button(self.player.is_muted)
 
-        self.move_widget(self.track_inner_container, self.main_layout, 1, 1)
+        self.track_outer_layout.removeWidget(self.track_inner_container)
+        self.main_layout.insertWidget(1, self.track_inner_container)
+
         self.track_inner_layout.setContentsMargins(9,0,9,5)
         self.track_outer_container.setMinimumWidth(0)
 
@@ -869,7 +871,9 @@ class MainWindow(QMainWindow):
         self.volume_layout.setSpacing(5)
         self.update_volume_button(self.player.is_muted)
 
-        self.move_widget(self.track_inner_container, self.track_outer_layout, 0)
+        self.main_layout.removeWidget(self.track_inner_container)
+        self.track_outer_layout.insertWidget(0, self.track_inner_container)
+
         self.track_inner_layout.setContentsMargins(0, 0, 0, 0)
         self.track_outer_container.setMinimumWidth(136)
 
@@ -877,19 +881,9 @@ class MainWindow(QMainWindow):
         self.ten_backward_button.setVisible(True)
 
 
-    def move_widget(self, widget, target_layout, index, stretch=None):
-        current_layout = widget.parentWidget().layout()
-
-        if current_layout is not None and current_layout != target_layout:
-            current_layout.removeWidget(widget)
-
-        if stretch is None:
-            target_layout.insertWidget(index, widget)
-        else:
-            target_layout.insertWidget(index, widget, stretch)
-
-
     def update_pixmap(self, container_size):
+        ratio = self.image_container.width() / self.image_container.height()
+
         if self.original_pixmap.isNull():
             return
 
