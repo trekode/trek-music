@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
         self.current_music_folder = ""
         self.track_paths_list = []
         self.list_view_mode = "original"
-        self.current_main_size = "L"
+        self.current_main_size = "expanded"
         self.volume = round(self.player.audio_output.volume()*100)
 
         self.menu_mode = "simple"
@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         self.volume_slider = QSlider(Qt.Orientation.Horizontal)
         self.volume_slider.setRange(0, 100)
         self.volume_slider.setValue(self.volume)  # Valor inicial
-        self.volume_slider.setFixedWidth(100)
+        self.volume_slider.setMaximumWidth(100)
         self.volume_slider.setToolTip(f"Volume: {self.volume}%")
         self.volume_slider.valueChanged.connect(self.change_volume)
 
@@ -253,8 +253,8 @@ class MainWindow(QMainWindow):
         self.shuffle_button.clicked.connect(self.handle_shuffle_click)
 
         self.play_pause_button.setFixedSize(50, 50)
-        self.ten_forward_button.setFixedSize(42, 42)
-        self.ten_backward_button.setFixedSize(42, 42)
+        self.ten_forward_button.setMaximumSize(42, 42)
+        self.ten_backward_button.setMaximumSize(42, 42)
         self.next_button.setFixedSize(38, 38)
         self.previous_button.setFixedSize(38, 38)
         self.shuffle_button.setFixedSize(30, 30)
@@ -763,7 +763,7 @@ class MainWindow(QMainWindow):
         icon = "volume_off.png" if is_muted else "volume_on.png"
         tooltip = "Unmute" if is_muted else "Mute"
 
-        if self.current_main_size[0] == "L":
+        if self.current_main_size == "expanded":
             radius_left = "15px"
             radius_right = "15px"
             padding = "7px"
@@ -842,24 +842,51 @@ class MainWindow(QMainWindow):
         if self.floating_volume_panel.isVisible():
             self.floating_volume_panel.hide()
 
-        if w <=327:
-            mode = "XXS"
-        elif w <= 421:
-            mode = "XS"
-        elif w <= 482:
-            mode = "S"
-        elif w < 653:
-            mode = "M"
-        else:
-            mode = "L"
-
+        mode = "compact" if w < 653 else "expanded"
 
         if mode != self.current_main_size:
             self.current_main_size = mode
-
             getattr(self, f"apply_{mode}_layout")()
 
-        self.track_inner_container.hide() if h <= 151 and w <= 482 else self.track_inner_container.show()
+
+    def apply_compact_layout(self):
+        self.volume_slider.setVisible(False)
+        self.volume_toggle_button.setVisible(True)
+        self.volume_layout.setSpacing(1)
+        self.update_volume_button(self.player.is_muted)
+
+        self.move_widget(self.track_inner_container, self.main_layout, 1, 1)
+        self.track_inner_layout.setContentsMargins(9,0,9,5)
+        self.track_outer_container.setMinimumWidth(0)
+
+        self.ten_forward_button.setVisible(False)
+        self.ten_backward_button.setVisible(False)
+
+
+    def apply_expanded_layout(self):
+        self.volume_slider.setVisible(True)
+        self.volume_toggle_button.setVisible(False)
+        self.volume_layout.setSpacing(5)
+        self.update_volume_button(self.player.is_muted)
+
+        self.move_widget(self.track_inner_container, self.track_outer_layout, 0)
+        self.track_inner_layout.setContentsMargins(0, 0, 0, 0)
+        self.track_outer_container.setMinimumWidth(136)
+
+        self.ten_forward_button.setVisible(True)
+        self.ten_backward_button.setVisible(True)
+
+
+    def move_widget(self, widget, target_layout, index, stretch=None):
+        current_layout = widget.parentWidget().layout()
+
+        if current_layout is not None and current_layout != target_layout:
+            current_layout.removeWidget(widget)
+
+        if stretch is None:
+            target_layout.insertWidget(index, widget)
+        else:
+            target_layout.insertWidget(index, widget, stretch)
 
 
     def update_pixmap(self, container_size):
@@ -898,85 +925,6 @@ class MainWindow(QMainWindow):
         painter.end()
 
         self.player_image.setPixmap(final_pixmap)
-
-
-    def apply_XXS_layout(self):
-        self.set_volume_ui(False, 1)
-        self.set_track_name_layout(False)
-        self.set_ten_seconds_buttons(False)
-        self.set_shuffle_repeat(False)
-
-
-    def apply_XS_layout(self):
-        self.set_volume_ui(False, 1)
-        self.set_track_name_layout(False)
-        self.set_ten_seconds_buttons(False)
-        self.set_shuffle_repeat(True)
-
-
-    def apply_S_layout(self):
-        self.set_volume_ui(False, 1)
-        self.set_track_name_layout(False)
-        self.set_ten_seconds_buttons(True)
-        self.set_shuffle_repeat(True)
-
-
-    def apply_M_layout(self):
-        self.set_volume_ui(False, 1)
-        self.set_track_name_layout(True)
-        self.track_outer_container.setMinimumWidth(50)
-        self.set_ten_seconds_buttons(True)
-        self.set_shuffle_repeat(True)
-
-
-    def apply_L_layout(self):
-        self.set_volume_ui(True, 5)
-        self.set_track_name_layout(True)
-        self.track_outer_container.setMinimumWidth(136)
-        self.set_ten_seconds_buttons(True)
-        self.set_shuffle_repeat(True)
-
-
-    def set_volume_ui(self, show_slider, spacing):
-        self.volume_slider.setVisible(show_slider)
-        self.volume_toggle_button.setVisible(not show_slider)
-        self.volume_layout.setSpacing(spacing)
-        self.update_volume_button(self.player.is_muted)
-
-
-    def set_track_name_layout(self, is_large):
-        target = self.track_outer_layout if is_large else self.main_layout
-        index = 0 if is_large else 1
-        stretch = None if is_large else 1
-        margins = (0,0,0,0) if is_large else (9,0,9,5)
-
-        self.move_widget(self.track_inner_container, target, index, stretch)
-
-        self.track_inner_layout.setContentsMargins(*margins)
-
-        self.track_outer_container.setVisible(is_large)
-
-
-    def set_ten_seconds_buttons(self, show):
-        self.ten_forward_button.setVisible(show)
-        self.ten_backward_button.setVisible(show)
-
-
-    def set_shuffle_repeat(self, show):
-        self.shuffle_button.setVisible(show)
-        self.repeat_button.setVisible(show)
-
-
-    def move_widget(self, widget, target_layout, index, stretch=None):
-        current_layout = widget.parentWidget().layout()
-
-        if current_layout is not None and current_layout != target_layout:
-            current_layout.removeWidget(widget)
-
-        if stretch is None:
-            target_layout.insertWidget(index, widget)
-        else:
-            target_layout.insertWidget(index, widget, stretch)
 
 
 # --------------------------------- EVENTS ---------------------------------
