@@ -300,8 +300,8 @@ class MainWindow(QMainWindow):
         self.open_files_replace_action.hovered.connect(lambda: self.update_status_bar("Replace playlist with selected audio files"))
         self.open_files_replace_action.triggered.connect(lambda: self.open_files(replace=True))
 
-        self.open_files_add_action = QAction("Add to Queue", self)
-        self.open_files_add_action.hovered.connect(lambda: self.update_status_bar("Add selected audio files to current queue"))
+        self.open_files_add_action = QAction("Add to Playlist", self)
+        self.open_files_add_action.hovered.connect(lambda: self.update_status_bar("Add selected audio files to current playlists"))
         self.open_files_add_action.triggered.connect(lambda: self.open_files(replace=False))
 
         self.open_folder_replace_action = QAction("Replace Playlist", self)
@@ -309,8 +309,8 @@ class MainWindow(QMainWindow):
         self.open_folder_replace_action.hovered.connect(lambda: self.update_status_bar("Replace playlist with all music files in folder"))
         self.open_folder_replace_action.triggered.connect(lambda: self.open_folder(replace=True))
 
-        self.open_folder_add_action = QAction("Add to Queue", self)
-        self.open_folder_add_action.hovered.connect(lambda: self.update_status_bar("Add all music files in folder to queue"))
+        self.open_folder_add_action = QAction("Add to Playlist", self)
+        self.open_folder_add_action.hovered.connect(lambda: self.update_status_bar("Add all music files in folder to current playlists"))
         self.open_folder_add_action.triggered.connect(lambda: self.open_folder(replace=False))
 
         self.view_playlist_action = QAction("Playlist Panel", self, checkable=True)
@@ -404,7 +404,7 @@ class MainWindow(QMainWindow):
         self.queue_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.queue_list.customContextMenuRequested.connect(self.show_list_menu)
 
-        tab_widget = CustomTabWidget([["Library", self.playlist, "Original order (never modified)"], ["Queue", self.queue_list, "Current playback order (editable)"]])
+        tab_widget = CustomTabWidget([["Library", self.playlist, "Source list (order preserved)"], ["Queue", self.queue_list, "Playback order (editable)"]])
         tab_widget.setObjectName("custom_tab_widget")
         tab_widget.tab_context_menu_requested.connect(self.on_tab_context_menu)
 
@@ -492,7 +492,7 @@ class MainWindow(QMainWindow):
             track_path = widget.track_path
 
             if track_path not in self.player.track_list:
-                add_to_queue_action = QAction("Add to Queue", self)
+                add_to_queue_action = QAction("Add to Playlist", self)
                 add_to_queue_action.triggered.connect(lambda: self.add_to_queue(track_path))
 
                 menu.addAction(add_to_queue_action)
