@@ -47,6 +47,8 @@ class MainWindow(QMainWindow):
         self._bg_scaled = None
         self._bg_size = None
 
+        self.wasPlaying = False
+
         self.inicialize_ui()
 
         self.create_status_bar()
@@ -97,8 +99,8 @@ class MainWindow(QMainWindow):
         self.player.position_changed.connect(
             lambda pos: self.slider.setValue(pos) if not self.slider.isSliderDown() else None)
         self.slider.sliderMoved.connect(lambda pos: self.player.set_position(pos))
-        self.slider.sliderPressed.connect(self.player.pause)
-        self.slider.sliderReleased.connect(lambda: (self.player.set_position(self.slider.value()), self.player.play()))
+        self.slider.sliderPressed.connect(self.slider_pressed)
+        self.slider.sliderReleased.connect(self.slider_released)
 
         self.track_name = MarqueeLabel()
         self.track_name.setFont(TRACK_NAME_FONT)
@@ -500,7 +502,7 @@ class MainWindow(QMainWindow):
             track_path = widget.track_path
 
             if track_path not in self.player.track_list:
-                add_to_queue_action = QAction("Add to Playlist", self)
+                add_to_queue_action = QAction("Add to queue", self)
                 add_to_queue_action.triggered.connect(lambda: self.add_to_queue(track_path))
 
                 menu.addAction(add_to_queue_action)
@@ -526,7 +528,7 @@ class MainWindow(QMainWindow):
 
 
     def add_to_queue(self, track):
-        self.player.set_tracks([track], False)
+        self.player.add_to_queue_only(track)
         self.update_queue_list(self.player.track_list)
 
 
@@ -652,6 +654,21 @@ class MainWindow(QMainWindow):
                 self.player.insert_next_and_play(widget.track_path)
             else:
                 self.player.set_track_by_path(widget.track_path)
+
+
+    def slider_pressed(self):
+        if self.player.reproduction_mode == "playing":
+            self.player.pause()
+            self.wasPlaying = True
+        else:
+            self.wasPlaying = False
+
+
+    def slider_released(self):
+        self.player.set_position(self.slider.value())
+
+        if self.wasPlaying:
+            self.player.play()
 
 
 # --------------------------------- UI STATE ---------------------------------
