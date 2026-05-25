@@ -61,6 +61,7 @@ class MainWindow(QMainWindow):
         self.create_dock()
         self.create_action()
         self.create_menu()
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
         self.show()
 
 
@@ -325,6 +326,12 @@ class MainWindow(QMainWindow):
         self.view_player_image_action.triggered.connect(self.view_player_image)
         self.view_player_image_action.setChecked(True)
 
+        self.view_fullscreen_action = QAction("Full Screen", self, checkable=True)
+        self.view_fullscreen_action.setShortcut(QKeySequence("F11"))
+        self.view_fullscreen_action.hovered.connect(lambda: self.update_status_bar("Enter or exit full screen"))
+        self.view_fullscreen_action.triggered.connect(self.toggle_fullscreen)
+        self.view_fullscreen_action.setChecked(False)
+
 
     def create_menu(self):
         self.menuBar().setStyle(QStyleFactory.create("Fusion"))
@@ -348,6 +355,7 @@ class MainWindow(QMainWindow):
         view_menu = self.menuBar().addMenu("View")
         view_menu.addAction(self.view_playlist_action)
         view_menu.addAction(self.view_player_image_action)
+        view_menu.addAction(self.view_fullscreen_action)
         view_menu.installEventFilter(self)
 
 
@@ -522,6 +530,10 @@ class MainWindow(QMainWindow):
         self.update_queue_list(self.player.track_list)
 
 
+    def sync_float_button(self):
+        self.dock_title_bar.float_btn.setChecked(self.dock.isFloating())
+
+
 # --------------------------------- VISIBILITY ---------------------------------
 
     def view_playlist(self):
@@ -536,16 +548,21 @@ class MainWindow(QMainWindow):
         self.view_playlist_action.setChecked(visible)
 
 
-    def sync_float_button(self):
-        self.dock_title_bar.float_btn.setChecked(self.dock.isFloating())
-
-
     def view_player_image(self):
         if self.view_player_image_action.isChecked():
             self.player_image.show()
         else:
             self.player_image.hide()
         self.update_status_bar()
+
+
+    def toggle_fullscreen(self):
+        if self.isFullScreen():
+            self.showNormal()
+            self.view_fullscreen_action.setChecked(False)
+        else:
+            self.showFullScreen()
+            self.view_fullscreen_action.setChecked(True)
 
 
 # --------------------------------- TRACK MANAGEMENT ---------------------------------
@@ -664,6 +681,10 @@ class MainWindow(QMainWindow):
             self.play_pause_button.setEnabled(True)
         else:
             self.play_pause_button.setEnabled(False)
+            self.play_pause_button.setStyleSheet(
+                "image: url(./assets/play_disabled.png);"
+                "padding: 8px 8px 8px 12px"
+            )
             self.play_pause_button.setToolTip("")
 
 
@@ -961,6 +982,7 @@ class MainWindow(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        print(f"ratio: {self.contentsRect().width() / self.contentsRect().height():.2f}")
 
         QTimer.singleShot(0, self._apply_resize_rules)
 

@@ -28,12 +28,13 @@ A desktop music player built with Python and PyQt6. Clean interface, responsive 
 - **Floating playlist dock**: detach the panel and move it anywhere, or close it to reclaim space
 - **Marquee track name**: long titles scroll smoothly when they don't fit
 - **Glow highlight**: the currently playing track glows in both Library and Queue lists
+- **Full screen mode**: toggle via F11 or the View menu
 - **Progressive image scaling**: the decorative player image adapts its aspect ratio based on the available space; hides automatically at very small window heights
 - Layered backgrounds with a fixed wallpaper behind all panels
 
 ### Volume
 - Mute button with inline volume slider (expanded mode)
-- Floating vertical volume popup (compact mode), closes on outside click
+- Floating vertical volume popup (compact mode)
 - Both sliders stay in sync at all times
 
 ### Status bar
@@ -92,12 +93,13 @@ The app expects an `images/` folder and a `styles.css` in the working directory.
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|---|---|
-| `Ctrl+O` | Open audio files |
-| `Ctrl+Shift+O` | Open folder |
-| `Ctrl+L` | Toggle playlist panel |
-| `Ctrl+I` | Toggle player image |
+| Shortcut       | Action                |
+|----------------|-----------------------|
+| `Ctrl+O`       | Open audio files      |
+| `Ctrl+Shift+O` | Open folder           |
+| `Ctrl+L`       | Toggle playlist panel |
+| `Ctrl+I`       | Toggle player image   |
+| `F11`          | Toggle fullscreen     |
 
 ---
 
