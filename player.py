@@ -78,15 +78,32 @@ class Player(QObject):
         self.player.setSource(QUrl())
 
 
-    def add_to_queue_only(self, track_path: str):
-        self.track_list.append(track_path)
+    def add_to_queue(self, *tracks_paths):
+        tracks_to_add = list(tracks_paths)
+        self.track_list.extend(tracks_to_add)
+
         if self.is_shuffle_on:
-            self.shuffle_tracks(True, [track_path])
+            self.shuffle_tracks(True, tracks_to_add)
+
+        self.playlist_changed.emit(self.track_list)
+
+
+    def load_queue(self, tracks_list: list):
+        self.track_list = tracks_list.copy()
+
+        if self.is_shuffle_on:
+            self.shuffle_tracks(False, tracks_list)
+
+        self.current_track_index = 0
+        self.load_current_track()
+        self.play()
+
+        self.track_changed.emit(self.get_current_track_path())
         self.playlist_changed.emit(self.track_list)
 
 
     def insert_next_and_play(self, track_path: str):
-        insert_index = (self.current_track_index or 0) + 1
+        insert_index = (self.current_track_index or 0) + 1 if self.track_list else 0
         self.track_list.insert(insert_index, track_path)
         if self.pre_shuffle_track_list:
             self.pre_shuffle_track_list.insert(insert_index, track_path)
@@ -144,6 +161,20 @@ class Player(QObject):
 
         self.shuffle_state_changed.emit(self.is_shuffle_on)
         self.playlist_changed.emit(self.track_list)
+
+
+    def clear_track_list(self, clear_all: bool = False):
+        if self.track_list:
+            self.track_list = []
+            self.pre_shuffle_track_list = None
+
+        if clear_all:
+            self.original_track_list = []
+
+        self.current_track_index = None
+        self.clear_source()
+        self.playlist_changed.emit(self.track_list)
+        self.track_changed.emit(self.get_current_track_path())
 
 
     # -------------------- REPRODUCTION CONTROL  --------------------

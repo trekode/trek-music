@@ -14,6 +14,7 @@ from track_item_widget import TrackItemWidget
 from dock_title_bar import DockTitleBar
 from floating_volume_panel import FloatingVolumePanel
 from player import Player
+from utils.paths import resource_path
 
 
 TRACK_NAME_FONT = QFont("Dubai", 14)
@@ -21,7 +22,6 @@ AUDIO_EXTENSIONS = (".mp3", ".wav", ".flac", ".ogg", ".m4a")
 
 
 class MainWindow(QMainWindow):
-
 
 # --------------------------------- INITIALIZATION ---------------------------------
 
@@ -43,7 +43,7 @@ class MainWindow(QMainWindow):
 
         self.menu_mode = "simple"
 
-        self._bg_pixmap = QPixmap("assets/background.jpg")
+        self._bg_pixmap = QPixmap(resource_path("assets/background.jpg"))
         self._bg_scaled = None
         self._bg_size = None
 
@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
         self.player_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.player_image.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
         self.player_image.setContentsMargins(0,0,0,0)
-        self.original_pixmap = QPixmap("assets/player_image.jpg")
+        self.original_pixmap = QPixmap(resource_path("assets/player_image.jpg"))
 
         self.slider = ClickableSlider(Qt.Orientation.Horizontal, self)
         self.slider.setStyle(QStyleFactory.create("Fusion"))
@@ -397,13 +397,13 @@ class MainWindow(QMainWindow):
 # --------------------------------- DOCK / LISTS ---------------------------------
 
     def create_dock(self):
-        self.playlist = QListWidget()
+        self.library_list = QListWidget()
         self.queue_list = QListWidget()
-        self.playlist.itemDoubleClicked.connect(self.handle_track_double_click)
+        self.library_list.itemDoubleClicked.connect(self.handle_track_double_click)
         self.queue_list.itemDoubleClicked.connect(self.handle_track_double_click)
 
-        self.playlist.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.playlist.customContextMenuRequested.connect(self.show_list_menu)
+        self.library_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.library_list.customContextMenuRequested.connect(self.show_list_menu)
 
         self.queue_list.setDragDropMode(QListWidget.DragDropMode.InternalMove)
         self.queue_list.setDefaultDropAction(Qt.DropAction.MoveAction)
@@ -414,7 +414,7 @@ class MainWindow(QMainWindow):
         self.queue_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.queue_list.customContextMenuRequested.connect(self.show_list_menu)
 
-        tab_widget = CustomTabWidget([["Library", self.playlist, "Source list (order preserved)"], ["Queue", self.queue_list, "Playback order (editable)"]])
+        tab_widget = CustomTabWidget([["Library", self.library_list, "Source list (order preserved)"], ["Queue", self.queue_list, "Playback order (editable)"]])
         tab_widget.setObjectName("custom_tab_widget")
         tab_widget.tab_context_menu_requested.connect(self.on_tab_context_menu)
 
@@ -475,43 +475,82 @@ class MainWindow(QMainWindow):
 
 
     def on_tab_context_menu(self, tab_name):
-        if tab_name == "Queue" and self.player.track_list != self.track_paths_list:
-            menu = QMenu(self)
-            reset_action = QAction("Reset to library", self)
-            reset_action.triggered.connect(self.player.reset_queue_to_library)
-            menu.addAction(reset_action)
-            menu.exec(QCursor.pos())
+        list = self.queue_list if tab_name == "Queue" else self.library_list
+        self._add_list_actions(list)
 
 
     def show_list_menu(self, pos):
         list = self.sender()
         item = list.itemAt(pos)
+
         if not item:
-            if list == self.queue_list and self.player.track_list != self.track_paths_list:
-                menu = QMenu(self)
-                reset_action = QAction("Reset to library", self)
-                reset_action.triggered.connect(self.player.reset_queue_to_library)
-                menu.addAction(reset_action)
-                menu.exec(list.mapToGlobal(pos))
+            self._add_list_actions(list)
             return
 
         menu = QMenu(self)
-
-        if list == self.playlist:
-            widget = self.playlist.itemWidget(item)
+        if list == self.library_list:
+            widget = self.library_list.itemWidget(item)
             track_path = widget.track_path
 
             if track_path not in self.player.track_list:
                 add_to_queue_action = QAction("Add to queue", self)
+                add_to_queue_action.hovered.connect(lambda: self.update_status_bar("Add the track to the queue"))
                 add_to_queue_action.triggered.connect(lambda: self.add_to_queue(track_path))
 
                 menu.addAction(add_to_queue_action)
 
         remove_action = QAction("Remove", self)
+        if list == self.library_list:
+            remove_action.hovered.connect(lambda: self.update_status_bar("Remove the track from the library (also removes it from the queue)"))
+        else:
+            remove_action.hovered.connect(lambda: self.update_status_bar("Remove the track from the queue"))
         remove_action.triggered.connect(lambda: self.remove_track_from_list(list, item))
 
         menu.addAction(remove_action)
         menu.exec(list.mapToGlobal(pos))
+
+
+    def _add_list_actions(self, list):
+        menu = QMenu(self)
+
+        if list == self.queue_list:
+            if self.player.track_list != self.track_paths_list:
+                reset_action = QAction("Reset to library", self)
+                reset_action.hovered.connect(lambda: self.update_status_bar("Reset the queue to match library"))
+                if self.player.track_list:
+                    reset_action.triggered.connect(self.player.reset_queue_to_library)
+
+                else:
+                    reset_action.triggered.connect(lambda: self.player.load_queue(self.track_paths_list))
+
+                menu.addAction(reset_action)
+
+            if self.player.track_list:
+                clear_action = QAction("Clear queue", self)
+                clear_action.hovered.connect(lambda: self.update_status_bar("Clear the queue"))
+                clear_action.triggered.connect(self.clear_list)
+                menu.addAction(clear_action)
+
+        elif list == self.library_list and self.track_paths_list:
+            if not self.player.track_list:
+                add_list_to_queue_action = QAction("Add list to queue", self)
+                add_list_to_queue_action.hovered.connect(lambda: self.update_status_bar("Add all library tracks to the queue"))
+                add_list_to_queue_action.triggered.connect(self.add_to_queue)
+                menu.addAction(add_list_to_queue_action)
+
+            if self.player.track_list and len(self.track_paths_list) != len(self.player.track_list):
+                add_missing_to_queue_action = QAction("Add missing to queue", self)
+                add_missing_to_queue_action.hovered.connect(lambda: self.update_status_bar("Add all library tracks not already in the queue"))
+                add_missing_to_queue_action.triggered.connect(self.add_to_queue)
+                menu.addAction(add_missing_to_queue_action)
+
+            clear_action = QAction("Clear library", self)
+            clear_action.hovered.connect(lambda: self.update_status_bar("Clear the library (also clears the queue)"))
+            clear_action.triggered.connect(lambda: self.clear_list(True))
+            menu.addAction(clear_action)
+
+        if not menu.isEmpty():
+            menu.exec(QCursor.pos())
 
 
     def remove_track_from_list(self, list, item):
@@ -520,15 +559,40 @@ class MainWindow(QMainWindow):
 
         self.player.remove_track(track_path)
 
-        if list == self.playlist:
+        if list == self.library_list:
             self.player.remove_from_original_list(track_path)
             self.track_paths_list.remove(track_path)
-            self.populate_dock_list(self.playlist, self.track_paths_list)
+            self.populate_dock_list(self.library_list, self.track_paths_list)
             self.highlight_current_track(self.player.get_current_track_path())
 
 
+    def clear_list(self, clear_all: bool = False):
+        self.player.clear_track_list(clear_all)
+
+        if clear_all:
+            self.track_paths_list.clear()
+            self.library_list.clear()
+            self.populate_dock_list(self.library_list, self.track_paths_list)
+
+        self.highlight_current_track(self.player.get_current_track_path())
+        self.update_buttons_style()
+
+
     def add_to_queue(self, track):
-        self.player.add_to_queue_only(track)
+        if track:
+            self.player.add_to_queue(track)
+
+        else:
+            if self.player.track_list:
+                tracks = []
+                for track_path in self.track_paths_list:
+                    if track_path not in self.player.track_list:
+                        tracks.append(track_path)
+                self.player.add_to_queue(*tracks)
+
+            else:
+                self.player.load_queue(self.track_paths_list)
+
         self.update_queue_list(self.player.track_list)
 
 
@@ -614,12 +678,12 @@ class MainWindow(QMainWindow):
             paths = [p for p in paths if p not in self.track_paths_list]  # exclude paths already in the playlist
 
         if replace:
-            self.playlist.clear()
+            self.library_list.clear()
             self.track_paths_list.clear()
 
         self.track_paths_list.extend(paths)
 
-        self.populate_dock_list(self.playlist, self.track_paths_list)
+        self.populate_dock_list(self.library_list, self.track_paths_list)
 
         if self.track_paths_list:
             self.player.set_tracks(paths, replace)
@@ -641,7 +705,8 @@ class MainWindow(QMainWindow):
 
     def handle_repeat_click(self):
         self.player.toggle_repeat()
-        self.repeat_button.setStyleSheet(f"image: url(./assets/repeat_{self.player.repeat}.png);")
+        path = resource_path(f"assets/repeat_{self.player.repeat}.png").replace("\\", "/")
+        self.repeat_button.setStyleSheet(f'image: url("{path}");')
         self.update_status_bar()
 
 
@@ -650,7 +715,7 @@ class MainWindow(QMainWindow):
         widget = list.itemWidget(item)
 
         if widget:
-            if list == self.playlist and widget.track_path not in self.player.track_list:
+            if list == self.library_list and widget.track_path not in self.player.track_list:
                 self.player.insert_next_and_play(widget.track_path)
             else:
                 self.player.set_track_by_path(widget.track_path)
@@ -683,24 +748,27 @@ class MainWindow(QMainWindow):
     def update_play_pause_button_style(self):
         if self.player.reproduction_mode == "playing":
             self.play_pause_button.setToolTip("Pause")
+            path = resource_path("assets/pause.png").replace("\\", "/")
             self.play_pause_button.setStyleSheet(
-                "image: url(./assets/pause.png);"
-                "padding: 10px 10px 10px 11px"
+                f"image: url({path});"
+                "padding: 10px 10px 10px 11px;"
             )
         else:
             self.play_pause_button.setToolTip("Play")
+            path = resource_path("assets/play_enabled.png").replace("\\", "/")
             self.play_pause_button.setStyleSheet(
-                "image: url(./assets/play_enabled.png);"
-                "padding: 8px 8px 8px 12px"
+                f"image: url({path});"
+                "padding: 8px 8px 8px 12px;"
             )
 
         if self.player.track_list:
             self.play_pause_button.setEnabled(True)
         else:
             self.play_pause_button.setEnabled(False)
+            path = resource_path("assets/play_disabled.png").replace("\\", "/")
             self.play_pause_button.setStyleSheet(
-                "image: url(./assets/play_disabled.png);"
-                "padding: 8px 8px 8px 12px"
+                f"image: url({path});"
+                "padding: 8px 8px 8px 12px;"
             )
             self.play_pause_button.setToolTip("")
 
@@ -710,33 +778,43 @@ class MainWindow(QMainWindow):
         is_playing = self.player.reproduction_mode != "stopped"
 
         self.next_button.setEnabled(has_tracks)
+        next_state = "enabled" if has_tracks else "disabled"
+        next_path = resource_path(f"assets/next_{next_state}.png").replace("\\", "/")
         self.next_button.setStyleSheet(
-            "image: url(./assets/next_enabled.png)" if has_tracks else "image: url(./assets/next_disabled.png)")
+            f"image: url({next_path})")
         self.next_button.setToolTip("Next Track" if has_tracks else "")
 
         self.previous_button.setEnabled(has_tracks)
+        previous_state = "enabled" if has_tracks else "disabled"
+        previous_path = resource_path(f"assets/previous_{previous_state}.png").replace("\\", "/")
         self.previous_button.setStyleSheet(
-            "image: url(./assets/previous_enabled.png)" if has_tracks else "image: url(./assets/previous_disabled.png)")
+            f"image: url({previous_path})")
         self.previous_button.setToolTip("Previous Track" if has_tracks else "")
 
         enable_seek = has_tracks and is_playing
 
         self.ten_forward_button.setEnabled(enable_seek)
+        ten_forward_state = "enabled" if enable_seek else "disabled"
+        ten_forward_path = resource_path(f"assets/ten_forward_{ten_forward_state}.png").replace("\\", "/")
         self.ten_forward_button.setStyleSheet(
-            "image: url(./assets/ten_forward_enabled.png)" if enable_seek else "image: url(./assets/ten_forward_disabled.png)")
+            f"image: url({ten_forward_path})")
         self.ten_forward_button.setToolTip("Forward 10 seconds" if enable_seek else "")
 
         self.ten_backward_button.setEnabled(enable_seek)
+        ten_backward_state = "enabled" if enable_seek else "disabled"
+        ten_backward_path = resource_path(f"assets/ten_backward_{ten_backward_state}.png").replace("\\", "/")
         self.ten_backward_button.setStyleSheet(
-            "image: url(./assets/ten_backward_enabled.png)" if enable_seek else "image: url(./assets/ten_backward_disabled.png)")
+            f"image: url({ten_backward_path})")
         self.ten_backward_button.setToolTip("Backward 10 seconds" if enable_seek else "")
 
 
     def update_shuffle_button(self, is_shuffle_on):
         if is_shuffle_on:
-            self.shuffle_button.setStyleSheet("image: url(./assets/shuffle_on.png)")
+            path = resource_path("assets/shuffle_on.png").replace("\\", "/")
         else:
-            self.shuffle_button.setStyleSheet("image: url(./assets/shuffle_off.png)")
+            path = resource_path("assets/shuffle_off.png").replace("\\", "/")
+
+        self.shuffle_button.setStyleSheet(f"image: url({path})")
 
         self.update_status_bar()
 
@@ -753,13 +831,13 @@ class MainWindow(QMainWindow):
 
 
     def highlight_current_track(self, current_track):
-        for widgets_list in [self.playlist, self.queue_list]:
-            if current_track and widgets_list:
+        for widgets_list in [self.library_list, self.queue_list]:
+            if widgets_list:
                 for i in range(widgets_list.count()):
                     item = widgets_list.item(i)
                     widget = widgets_list.itemWidget(item)
 
-                    if widget.track_path == current_track:
+                    if current_track and widget.track_path == current_track:
                         widget.title_label.setGlowEnabled(enabled=True)
                         widget.duration_label.setGlowEnabled(enabled=True)
                     else:
@@ -799,6 +877,7 @@ class MainWindow(QMainWindow):
 
     def update_volume_button(self, is_muted):
         icon = "volume_off.png" if is_muted else "volume_on.png"
+        path = resource_path(f"assets/{icon}").replace("\\", "/")
         tooltip = "Unmute" if is_muted else "Mute"
 
         if self.current_main_size == "expanded":
@@ -816,7 +895,7 @@ class MainWindow(QMainWindow):
             f"border-top-left-radius: {radius_left};"
             f"border-bottom-left-radius: {radius_left};"
             f"padding: {padding};"
-            f"image: url(./assets/{icon})"
+            f"image: url({path})"
         )
 
         self.update_status_bar()
@@ -861,12 +940,14 @@ class MainWindow(QMainWindow):
         self.floating_volume_panel.show()
         self.floating_volume_panel.raise_()
 
-        self.volume_toggle_button.setStyleSheet("image: url(./assets/arrow-down)")
+        path = resource_path("assets/arrow-down.png").replace("\\", "/")
+        self.volume_toggle_button.setStyleSheet(f"image: url({path})")
         self.volume_toggle_button.setToolTip("Close volume slider")
 
 
     def on_volume_panel_closed(self):
-        self.volume_toggle_button.setStyleSheet("image: url(./assets/arrow-up)")
+        path = resource_path("assets/arrow-up.png").replace("\\", "/")
+        self.volume_toggle_button.setStyleSheet(f"image: url({path})")
         self.volume_toggle_button.setToolTip("Open volume slider")
 
 
@@ -999,8 +1080,6 @@ class MainWindow(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        print(f"ratio: {self.contentsRect().width() / self.contentsRect().height():.2f}")
-
         QTimer.singleShot(0, self._apply_resize_rules)
 
 
@@ -1037,11 +1116,24 @@ class MainWindow(QMainWindow):
         event.accept()
 
 
+# --------------------------- LOAD STYLES -----------------------------------
+
+def load_stylesheet(relative_css_path):
+    css_path = resource_path(relative_css_path)
+    assets_dir = resource_path("assets").replace("\\", "/")
+
+    with open(css_path, "r", encoding="utf-8") as f:
+        css = f.read()
+
+    # Replace any url("assets/...") with the actual absolute path
+    css = css.replace('url("assets/', f'url("{assets_dir}/')
+
+    return css
+
+
 if __name__ == '__main__':
     app  = QApplication(sys.argv)
-    with open("styles.css", "r") as file:
-        style = file.read()
-    app.setStyleSheet(style)
+    app.setStyleSheet(load_stylesheet("styles/styles.css"))
     # app.setFont(QFont("Arial", 12))
     window = MainWindow()
     sys.exit(app.exec())

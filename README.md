@@ -18,13 +18,13 @@ A desktop music player built with Python and PyQt6. Clean interface, responsive 
 - **Library tab** — your original file list, order preserved
 - **Queue tab** — the active playback order, drag-and-drop reorderable and affected by shuffle
 - Load audio files individually or scan an entire folder (including subfolders)
-- **Add** to current playlist or **replace** playlist without losing your current track
+- **Add** to current playlist without losing your current track or **replace** playlist
 - New tracks are shuffled into the queue if shuffle is active
-- Right-click context menus: remove a track, add from Library to Queue, reset Queue back to Library order
+- Right-click context menus: remove a track, add from Library to Queue (single tracks, all missing tracks or full list), reset Queue back to Library order, clear the entire list
 - Supported formats: MP3, WAV, FLAC, OGG, M4A
 
 ### UI & Layout
-- **Responsive layout**: at narrow widths, ±10s buttons collapse and the track name moves inline; the volume slider becomes a floating popup
+- **Responsive layout**: at narrow widths, ±10s buttons collapse and the track name label repositions; the volume slider becomes a floating popup
 - **Floating playlist dock**: detach the panel and move it anywhere, or close it to reclaim space
 - **Marquee track name**: long titles scroll smoothly when they don't fit
 - **Glow highlight**: the currently playing track glows in both Library and Queue lists
@@ -44,7 +44,7 @@ A desktop music player built with Python and PyQt6. Clean interface, responsive 
 ### Other
 - **Wake lock** via `wakepy`: prevents the system from sleeping while music is playing
 - Menu adapts between simple (empty queue) and advanced (add vs replace) modes automatically
-- Keyboard shortcuts: `Ctrl+O` open files, `Ctrl+Shift+O` open folder, `Ctrl+L` toggle playlist, `Ctrl+I` toggle player image
+- Keyboard shortcuts: `Ctrl+O` open files, `Ctrl+Shift+O` open folder, `Ctrl+L` toggle playlist, `Ctrl+I` toggle player image, `F11` toggle fullscreen
 
 ---
 
@@ -61,6 +61,7 @@ The project is split into a logic layer and a UI layer with no circular dependen
 - custom_tab_widget.py — Tab container with checkable QPushButton tabs and context menu support
 - dock_title_bar.py — Custom QDockWidget title bar with float/close buttons
 - floating_volume_panel.py  — Frameless popup with rounded painted background
+- utils/paths.py - resource_path helper for PyInstaller compatibility
 
 `Player` communicates upward exclusively through signals (`playback_state_changed`, `track_changed`, `playlist_changed`, `shuffle_state_changed`, `volume_state_changed`, `duration_changed`, 
 `position_changed`). `MainWindow` owns the UI and connects to those signals — no circular imports.
@@ -87,7 +88,18 @@ pip install PyQt6 mutagen wakepy
 python main.py
 ```
 
-The app expects an `images/` folder and a `styles.css` in the working directory. See `resources.qrc` for the full asset list.
+The app expects an `assets/` folder and `styles/styles.css` in the working directory.
+
+---
+
+## Building (PyInstaller)
+
+```bash
+python -m PyInstaller --onefile --windowed --name TrekMusic --add-data "assets;assets" --add-data "styles;styles" main.py
+```
+
+On Windows use ; as separator, on Linux/Mac use :.
+Asset paths are resolved automatically via utils/paths.py.
 
 ---
 

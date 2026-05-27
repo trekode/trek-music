@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QLabel, QHBoxLayout, QSizePolicy, QSpacerIt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt
 from glow_label import GlowLabel
+from utils.paths import resource_path
 
 
 class TrackItemWidget(QWidget):
@@ -10,7 +11,7 @@ class TrackItemWidget(QWidget):
 
         self.track_path: str = track_path
 
-        icon = QIcon("assets/music_icon.png")
+        icon = QIcon(resource_path("assets/music_icon.png"))
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(15,15))
         icon_label.setFixedWidth(15)
