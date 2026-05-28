@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QDockWidget, QStatusBar, QWidget, \
     QHBoxLayout, QVBoxLayout, QListWidget, QListWidgetItem, QStyleFactory, QSizePolicy, QSlider, QMenu
-from PyQt6.QtGui import QPixmap, QAction, QKeySequence, QPainter, QFont, QCursor
+from PyQt6.QtGui import QPixmap, QAction, QKeySequence, QPainter, QFont, QCursor, QIcon
 from PyQt6.QtCore import Qt, QStandardPaths, QPoint, QEvent, QTimer
 from PyQt6.QtWidgets import QFileDialog
 from mutagen import File
@@ -59,6 +59,7 @@ class MainWindow(QMainWindow):
     def inicialize_ui(self):
         self.setGeometry(200,100,918,518)
         self.setWindowTitle("Trek Music")
+        self.setWindowIcon(QIcon(resource_path("assets/window_icon.ico")))
         self.generate_main_window()
         self.create_dock()
         self.create_action()

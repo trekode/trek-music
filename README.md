@@ -94,8 +94,14 @@ The app expects an `assets/` folder and `styles/styles.css` in the working direc
 
 ## Building (PyInstaller)
 
+> Use `--onedir` for faster startup (outputs a folder) or `--onefile` for a single executable (slower startup due to decompression).
+> 
 ```bash
-python -m PyInstaller --onefile --windowed --name TrekMusic --add-data "assets;assets" --add-data "styles;styles" main.py
+# Folder (recommended for personal use)
+python -m PyInstaller --onedir --windowed --name TrekMusic --add-data "assets;assets" --add-data "styles;styles" --collect-all PyQt6 --icon "assets/window_icon.ico" main.py
+
+# Single executable
+python -m PyInstaller --onefile --windowed --name TrekMusic --add-data "assets;assets" --add-data "styles;styles" --collect-all PyQt6 --icon "assets/window_icon.ico" main.py
 ```
 
 On Windows use ; as separator, on Linux/Mac use :.
